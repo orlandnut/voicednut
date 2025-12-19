@@ -5,6 +5,7 @@ const {
   getStageDefinition,
   normalizeStage,
   isSensitiveStage,
+  getRawDigits,
 } = require('../utils/dtmf');
 
 function parseDtmfMetadata(metadata) {
@@ -180,21 +181,18 @@ function formatAnsweredLabel(value) {
 }
 
 function formatDtmfEntries(entries = []) {
-  const revealRaw = true;
   return entries.map((entry) => {
     const stageKey = normalizeStage(entry.stage_key || 'generic');
     const metadata = parseDtmfMetadata(entry.metadata);
     const stageDefinition = getStageDefinition(stageKey);
-    const decrypted = entry.encrypted_digits ? decryptDigits(entry.encrypted_digits) : null;
-    const rawDigits = revealRaw ? (decrypted || metadata.raw_digits_preview || null) : null;
-    const fallbackDigits = metadata.raw_digits_preview || entry.masked_digits;
+    const rawDigits = getRawDigits(entry) || metadata.raw_digits_preview || entry.masked_digits;
     const label = metadata.stage_label || stageDefinition.label || stageKey || 'Entry';
     return {
       id: entry.id,
       call_sid: entry.call_sid,
       stage_key: stageKey,
       label,
-      digits: rawDigits || fallbackDigits,
+      digits: rawDigits || entry.masked_digits,
       raw_digits: rawDigits || null,
       masked_digits: entry.masked_digits,
       received_at: entry.received_at,
@@ -261,7 +259,7 @@ function collectInputLines(metadata = {}, entries = [], options = {}) {
       fallbackDefinition.label ||
       entry.stage_key ||
       'Entry';
-    const digits = decryptDigits(entry.encrypted_digits) || entryMetadata.raw_digits_preview || entry.masked_digits || '';
+    const digits = getRawDigits(entry);
     if (!digits) {
       return;
     }

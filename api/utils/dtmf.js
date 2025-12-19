@@ -124,6 +124,26 @@ function savePayloadForCompliance(stageKey, digits, provider, extraMeta = {}) {
   return { maskedDigits: masked, encryptedDigits: encrypted, metadata };
 }
 
+function getRawDigits(entry = {}) {
+  if (!entry) return '';
+
+  let parsedMetadata = null;
+  if (entry.metadata) {
+    try {
+      parsedMetadata = typeof entry.metadata === 'string' ? JSON.parse(entry.metadata) : entry.metadata;
+    } catch (error) {
+      parsedMetadata = null;
+    }
+  }
+
+  const decrypted = decryptDigits(entry.encrypted_digits);
+  const preview = parsedMetadata?.raw_digits_preview;
+  const masked = entry.masked_digits;
+
+  const value = decrypted ?? preview ?? masked ?? '';
+  return value.toString();
+}
+
 function formatSummary(entries = []) {
   if (!entries.length) {
     return {
@@ -147,15 +167,9 @@ function formatSummary(entries = []) {
         parsedMetadata = null;
       }
     }
-    let value = entry.masked_digits;
-    if (revealRaw) {
-      const decrypted = decryptDigits(entry.encrypted_digits);
-      if (decrypted) {
-        value = decrypted;
-      } else if (parsedMetadata?.raw_digits_preview) {
-        value = parsedMetadata.raw_digits_preview;
-      }
-    }
+    const value = revealRaw
+      ? getRawDigits(entry)
+      : entry.masked_digits;
     return `${label}: ${value}`;
   });
 
@@ -190,6 +204,7 @@ module.exports = {
   encryptDigits,
   decryptDigits,
   savePayloadForCompliance,
+  getRawDigits,
   shouldRevealRawDigits,
   formatSummary,
   getStageDefinition,
