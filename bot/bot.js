@@ -171,7 +171,6 @@ require('./commands/guide')(bot);
 require('./commands/transcript')(bot);
 require('./commands/api')(bot);
 registerProviderCommand(bot);
-require('./commands/webapp')(bot); // Register WebApp handler
 
 function escapeMarkdown(text = '') {
     return text.replace(/([_*[\]()~`>#+=|{}.!\\-])/g, '\\$1');
