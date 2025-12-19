@@ -93,6 +93,11 @@ bot.catch((err) => {
 });
 
 async function validateTemplatesApiConnectivity() {
+    if (!config.templatesApiUrl) {
+        console.warn('⚠️ TEMPLATES_API_URL not configured; skipping templates health check');
+        return;
+    }
+
     const healthUrl = new URL('/health', config.templatesApiUrl).toString();
     try {
         const response = await axios.get(healthUrl, { timeout: 5000 });
@@ -115,7 +120,7 @@ async function validateTemplatesApiConnectivity() {
         } else {
             reason = error.message;
         }
-        throw new Error(`Unable to reach Templates API at ${healthUrl}: ${reason}`);
+        console.warn(`⚠️ Unable to reach Templates API at ${healthUrl}: ${reason} (continuing without templates health)`);
     }
 }
 
@@ -469,19 +474,9 @@ bot.command('start', async (ctx) => {
             '🛡️ *Welcome, Administrator!*\n\nYou have full access to all bot features.' :
             '👋 *Welcome to Voicednut Bot!*\n\nYou can make voice calls using AI agents.';
 
-        // Get the Mini App URL from config
-        const webAppUrl = config.webAppUrl;
-        
-        // Prepare keyboard with Mini App button if URL is configured
         const kb = new InlineKeyboard();
-        
-        // Add Mini App button if URL is configured
-        if (webAppUrl) {
-            kb.webApp('🚀 Open Mini App', webAppUrl)
-              .row();
-        }
-        
-        // Add other buttons
+
+        // Add buttons
         kb.text('📞 New Call', 'CALL')
           .text('📚 Guide', 'GUIDE')
             .row()
@@ -505,12 +500,6 @@ bot.command('start', async (ctx) => {
 
         // Prepare the message with conditional Mini App notice
         let message = `${welcomeText}\n\n${userStats}\n\n`;
-        
-        // Add Mini App notice only if it's configured
-        if (config.webAppUrl) {
-            message += '🚀 *Try our Mini App for a better experience!*\n' +
-                      'Click the Mini App button below to access enhanced features.\n\n';
-        }
         
         message += 'Use the buttons below or type /help for available commands.';
         
@@ -702,7 +691,6 @@ async function executeHelpCommand(ctx) {
 • /start - Restart bot &amp; show main menu
 • /call - Start a new voice call
 • /sms - Send an SMS message
-• /miniapp - Open the Mini App
 • /smsconversation &lt;phone&gt; - View SMS conversation
 • /transcript &lt;call_sid&gt; - Get call transcript
 • /calls [limit] - List recent calls (max 50)
@@ -1189,45 +1177,8 @@ async function executeProviderSwitchCommand(ctx, provider) {
     }
 }
 
-// Mini App command handler
-bot.command('miniapp', async (ctx) => {
-    try {
-        // Verify user authorization
-        const user = await new Promise(r => getUser(ctx.from.id, r));
-        if (!user) {
-            return ctx.reply('❌ You are not authorized to use this bot.');
-        }
-
-        // Check if Mini App URL is configured
-        if (!config.webAppUrl) {
-            return ctx.reply('❌ Mini App is not configured. Please contact the administrator.');
-        }
-
-        const kb = new InlineKeyboard()
-            .webApp('🚀 Launch Mini App', config.webAppUrl);
-
-        await ctx.reply(
-            '🎯 *Voice Call Bot Mini App*\n\n' +
-            'Access enhanced features through our Mini App:\n' +
-            '• 📱 Modern interface\n' +
-            '• 🚀 Quick access to all features\n' +
-            '• 📊 Real-time call monitoring\n' +
-            '• 💬 Instant messaging\n\n' +
-            'Click the button below to open the Mini App.',
-            {
-                parse_mode: 'Markdown',
-                reply_markup: kb
-            }
-        );
-    } catch (error) {
-        console.error('Mini App command error:', error);
-        await ctx.reply('❌ Error launching Mini App. Please try again or contact support.');
-    }
-});
-
 const TELEGRAM_COMMANDS = [
     { command: 'start', description: 'Start or restart the bot' },
-    { command: 'miniapp', description: 'Open the Voice Call Mini App' },
     { command: 'call', description: 'Start outbound voice call' },
     { command: 'sms', description: 'Send SMS message' },
     { command: 'transcript', description: 'Get call transcript by SID' },
